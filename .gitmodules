@@ -1,0 +1,3 @@
+[submodule "src/libcccrt"]
+	path = src/libcccrt
+	url = https://github.com/chriskiefer/libcccrt

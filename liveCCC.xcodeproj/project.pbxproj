@@ -62,9 +62,9 @@
 		38BBDA0A238BF8CC0014616A /* armaRingBuf.hpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.h; path = armaRingBuf.hpp; sourceTree = "<group>"; };
 		38BBDA23238C15B70014616A /* maximilian.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = maximilian.h; sourceTree = "<group>"; };
 		38BBDA24238C15B70014616A /* maximilian.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = maximilian.cpp; sourceTree = "<group>"; };
-		38D89891237C1C120047CB16 /* CCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CCC.hpp; sourceTree = "<group>"; };
-		38D89895237C1C120047CB16 /* ETC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ETC.hpp; sourceTree = "<group>"; };
-		38D898C3237C1C120047CB16 /* shannonEntropy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = shannonEntropy.hpp; sourceTree = "<group>"; };
+		38BBDF69238D51140014616A /* CCC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = CCC.hpp; sourceTree = "<group>"; };
+		38BBDF6D238D51140014616A /* ETC.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = ETC.hpp; sourceTree = "<group>"; };
+		38BBDF76238D51140014616A /* shannonEntropy.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; path = shannonEntropy.hpp; sourceTree = "<group>"; };
 		E42962AC2163EDD300A6A9E2 /* ofCamera.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = ofCamera.cpp; path = ../../../libs/openFrameworks/3d/ofCamera.cpp; sourceTree = SOURCE_ROOT; };
 		E42962AD2163EDD300A6A9E2 /* ofMesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ofMesh.h; path = ../../../libs/openFrameworks/3d/ofMesh.h; sourceTree = SOURCE_ROOT; };
 		E42962AE2163EDD300A6A9E2 /* ofNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = ofNode.h; path = ../../../libs/openFrameworks/3d/ofNode.h; sourceTree = SOURCE_ROOT; };
@@ -369,15 +369,14 @@
 			path = ofxdatgui;
 			sourceTree = "<group>";
 		};
-		38D8907F237C1C0C0047CB16 /* libcccrt */ = {
+		38BBDA30238D51110014616A /* libcccrt */ = {
 			isa = PBXGroup;
 			children = (
-				38D89891237C1C120047CB16 /* CCC.hpp */,
-				38D89895237C1C120047CB16 /* ETC.hpp */,
-				38D898C3237C1C120047CB16 /* shannonEntropy.hpp */,
+				38BBDF69238D51140014616A /* CCC.hpp */,
+				38BBDF6D238D51140014616A /* ETC.hpp */,
+				38BBDF76238D51140014616A /* shannonEntropy.hpp */,
 			);
-			name = libcccrt;
-			path = ../../../../../../virtualenvs/conda3/libcccrt;
+			path = libcccrt;
 			sourceTree = "<group>";
 		};
 		6948EE371B920CB800B5AC1A /* local_addons */ = {
@@ -694,10 +693,10 @@
 		E4B69E1C0A3A1BDC003C02F2 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				38BBDA30238D51110014616A /* libcccrt */,
 				38BBDA24238C15B70014616A /* maximilian.cpp */,
 				38BBDA23238C15B70014616A /* maximilian.h */,
 				E4B69E1D0A3A1BDC003C02F2 /* main.cpp */,
-				38D8907F237C1C0C0047CB16 /* libcccrt */,
 				E4B69E1E0A3A1BDC003C02F2 /* ofApp.cpp */,
 				38BBDA0A238BF8CC0014616A /* armaRingBuf.hpp */,
 				E4B69E1F0A3A1BDC003C02F2 /* ofApp.h */,
@@ -865,8 +864,8 @@
 					"$(OF_CORE_HEADERS)",
 					src,
 					src,
-					/Users/ck84/hd2/virtualenvs/conda3/libcccrt/armadillo/include,
-					"/Users/ck84/hd2/virtualenvs/conda3/libcccrt/hopscotch-map/include",
+					src/libcccrt/armadillo/include,
+					"src/libcccrt/hopscotch-map/include",
 				);
 				ICON = "$(ICON_NAME_RELEASE)";
 				ICON_FILE = "$(ICON_FILE_PATH)$(ICON)";
@@ -968,8 +967,8 @@
 					"$(OF_CORE_HEADERS)",
 					src,
 					src,
-					/Users/ck84/hd2/virtualenvs/conda3/libcccrt/armadillo/include,
-					"/Users/ck84/hd2/virtualenvs/conda3/libcccrt/hopscotch-map/include",
+					src/libcccrt/armadillo/include,
+					"src/libcccrt/hopscotch-map/include",
 				);
 				ICON = "$(ICON_NAME_DEBUG)";
 				ICON_FILE = "$(ICON_FILE_PATH)$(ICON)";
@@ -1001,8 +1000,8 @@
 					"$(OF_CORE_HEADERS)",
 					src,
 					src,
-					/Users/ck84/hd2/virtualenvs/conda3/libcccrt/armadillo/include,
-					"/Users/ck84/hd2/virtualenvs/conda3/libcccrt/hopscotch-map/include",
+					src/libcccrt/armadillo/include,
+					"src/libcccrt/hopscotch-map/include",
 				);
 				ICON = "$(ICON_NAME_RELEASE)";
 				ICON_FILE = "$(ICON_FILE_PATH)$(ICON)";

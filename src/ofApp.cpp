@@ -147,13 +147,31 @@ void ofApp::setup(){
     });
     auto dynCCStepSlider = gui->addSlider("DynCC Step", 0.0, 1.0, dynCCStep);
     dynCCStepSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
-        dynCCWindowSize = e.value;
+        dynCCStep = e.value;
     });
     auto dynCCPastSizeSlider = gui->addSlider("DynCC Past", 0.0, 1.0, dynCCPastSize);
     dynCCPastSizeSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
         dynCCPastSize = e.value;
     });
     
+
+    auto eq1FreqSlider = gui->addSlider("EQ 1 Freq", 0.0, 1.0, dynCCPastSize);
+    dynCCPastSizeSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
+        dynCCPastSize = e.value;
+    });
+
+    auto verbMixSlider = gui->addSlider("Verb Mix", 0.0, 1.0, verbMix);
+    verbMixSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
+        verbMix = e.value;
+    });
+    auto verbAbsorptionSlider = gui->addSlider("Verb Absorb", 0.0, 1.0, verbAbsorbtion);
+    verbAbsorptionSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
+        verbAbsorbtion = e.value;
+    });
+    auto verbRoomSizeSlider = gui->addSlider("Verb Room Size", 0.0, 1.0, verbRoomSize);
+    verbRoomSizeSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
+        verbRoomSize = e.value;
+    });
 
     dampingResponse.set(maxiBiquad::LOWPASS, dampingResponseFrequency, 0.1, 1);
     ofSoundStreamStart();
@@ -234,6 +252,7 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
             mag += (buffer[(i*buffer.getNumChannels()) + j] * channelGains[j]);
         }
         mag = (mag / buffer.getNumChannels());
+        mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
         audioInBuffer[i] = mag * masterGain;
         sigRingBuf.push(mag);
         if (rmsCounter++ == rmsHop) {
@@ -287,7 +306,7 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
                 if (dynCCxpast < 2) dynCCxpast = 2;
                 int dynCCdx = dynCCRange - dynCCxpast;
                 int dynCCStepSize = (dynCCxpast + dynCCdx) * dynCCStep;
-                dynCCStepSize = max(1, dynCCStepSize);
+                dynCCStepSize = max(2, dynCCStepSize);
                 dynCC = CCC::dynamicCC(rmsDynCCSymBuf, dynCCdx, dynCCxpast, dynCCStepSize, CCC::SINGLETHREAD);
                 dynccRingBuf.push(dynCC);
             }

@@ -5,6 +5,7 @@
 #include "ofxDatGui.h"
 #include "armaRingBuf.hpp"
 #include "maximilian.h"
+#include "maxiReverb.h"
 
 using namespace arma;
 
@@ -69,12 +70,16 @@ class ofApp : public ofBaseApp{
     maxiBiquad dampingResponse;
     float dampingResponseFrequency=10;
     float dampingCurve = 1.0;
+    
+    maxiBiquad eq1, eq2;
+    float eq1Freq=1000, eq1Q=1, eq1Gain=0;
 
+    maxiFreeVerb verb;
+    float verbMix=0.2, verbAbsorbtion=0.4, verbRoomSize=0.4;
 
     
     //gui
     ofxDatGui* gui;
-    
     ofxDatGuiSlider* gainSliders[4];
     
 };

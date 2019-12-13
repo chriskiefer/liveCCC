@@ -86,6 +86,7 @@ class ofApp : public ofBaseApp{
     
     //recording
     SNDFILE*  wavfile;
+    SF_INFO sfinfo;
     bool isRecording = 0;
     
 };

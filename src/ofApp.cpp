@@ -21,8 +21,8 @@ void ofApp::setup(){
     for(auto i : devices) {
         cout << devIdx << ", " << i.name << endl;
         //Apple Inc.: Built-in-out
-        if (i.name == "MOTU: MOTU UltraLite"){
-//        if (i.name == "Apple Inc.: Built-in Output"){
+//        if (i.name == "MOTU: MOTU UltraLite"){
+        if (i.name == "Apple Inc.: Built-in Output"){
             audioInterfaceIndex=devIdx;
         }
         devIdx++;
@@ -38,7 +38,8 @@ void ofApp::setup(){
     settings.setInListener(this);
     settings.setOutListener(this);
     settings.sampleRate = sampleRate;
-    settings.numInputChannels = 4;
+//    settings.numInputChannels = 4;
+    settings.numInputChannels = 1;
     settings.numOutputChannels = 2;
     settings.bufferSize = bufferSize;
     settings.setOutDevice(devices[audioInterfaceIndex]);
@@ -57,19 +58,19 @@ void ofApp::setup(){
     gui->addLabel(">> Recording");
     auto recordToggle = gui->addToggle("Record", isRecording);
     recordToggle->onToggleEvent([&](ofxDatGuiToggleEvent e) {
-        isRecording = e.checked;
         if (e.checked) {
-            SF_INFO sfinfo;
+            isRecording=1;
             sfinfo.samplerate = sampleRate;
-            sfinfo.channels = 1;
-            sfinfo.format = SF_FORMAT_WAV;
+            sfinfo.channels = 3;
+            sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
             stringstream s;
             s << "/tmp/record_";
             s << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             s << ".wav";
-            wavfile = sf_open("/tmp/test.wav", SFM_WRITE, &sfinfo);
+            wavfile = sf_open(s.str().c_str(), SFM_WRITE, &sfinfo);
             
         }else{
+            isRecording=0;
             sf_close(wavfile);
         };
     });
@@ -275,9 +276,6 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
         }
         mag = (mag / buffer.getNumChannels());
         mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
-        if (isRecording) {
-            sf_write_float(wavfile, &mag, 1);
-        }
         audioInBuffer[i] = mag * masterGain;
         sigRingBuf.push(mag);
         if (rmsCounter++ == rmsHop) {
@@ -339,6 +337,15 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
             if (ETCStepCount==ETCHopSize) ETCStepCount=0;
 
         }
+        sf_count_t  n;
+        float rec[2];
+        rec[0] = mag;
+        rec[1] = inputETC;
+        rec[2] = ETCDiff;
+        if (isRecording) {
+            n = sf_write_float(wavfile, &rec[0], 3);
+        }
+
     }
 
     

@@ -13,7 +13,8 @@ void ofApp::reCalcETCParams() {
 //--------------------------------------------------------------
 void ofApp::setup(){
     ofSetFrameRate(60);
-        
+    
+    
     auto devices = soundStream.getDeviceList();
     int audioInterfaceIndex = 0;
     int devIdx=0;
@@ -45,18 +46,39 @@ void ofApp::setup(){
     
     audioInBuffer.resize(bufferSize);
     
+
+    
     //gui
     
     ofxDatGui* gui = new ofxDatGui( ofxDatGuiAnchor::TOP_RIGHT );
     gui->setWidth(400);
     gui->setOpacity(0.9);
 
+    gui->addLabel(">> Recording");
+    auto recordToggle = gui->addToggle("Record", isRecording);
+    recordToggle->onToggleEvent([&](ofxDatGuiToggleEvent e) {
+        isRecording = e.checked;
+        if (e.checked) {
+            SF_INFO sfinfo;
+            sfinfo.samplerate = sampleRate;
+            sfinfo.channels = 1;
+            sfinfo.format = SF_FORMAT_WAV;
+            stringstream s;
+            s << "/tmp/record_";
+            s << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+            s << ".wav";
+            wavfile = sf_open("/tmp/test.wav", SFM_WRITE, &sfinfo);
+            
+        }else{
+            sf_close(wavfile);
+        };
+    });
     gui->addLabel(">> Analysis");
     auto rmsModeToggle = gui->addToggle("RMS rel/abs", rmsMode);
     rmsModeToggle->onToggleEvent([&](ofxDatGuiToggleEvent e) {
         rmsMode = e.checked;
     });
-    
+
     auto headroomSlider = gui->addSlider("Headroom size: ", 0.01, 1.5, maxHeadroom);
     headroomSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
         maxHeadroom = e.value;
@@ -253,6 +275,9 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
         }
         mag = (mag / buffer.getNumChannels());
         mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
+        if (isRecording) {
+            sf_write_float(wavfile, &mag, 1);
+        }
         audioInBuffer[i] = mag * masterGain;
         sigRingBuf.push(mag);
         if (rmsCounter++ == rmsHop) {
@@ -316,7 +341,7 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
         }
     }
 
-
+    
     
 }
 

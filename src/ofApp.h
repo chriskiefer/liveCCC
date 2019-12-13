@@ -6,6 +6,8 @@
 #include "armaRingBuf.hpp"
 #include "maximilian.h"
 #include "maxiReverb.h"
+#include <sndfile.h>
+
 
 using namespace arma;
 
@@ -81,5 +83,9 @@ class ofApp : public ofBaseApp{
     //gui
     ofxDatGui* gui;
     ofxDatGuiSlider* gainSliders[4];
+    
+    //recording
+    SNDFILE*  wavfile;
+    bool isRecording = 0;
     
 };

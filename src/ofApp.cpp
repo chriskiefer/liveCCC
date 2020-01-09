@@ -15,15 +15,32 @@ void ofApp::setup(){
     ofSetFrameRate(60);
     
     
+    
+    ofSoundStreamSettings settings;
+    int bufferSize        = 64;
+    int sampleRate        = 44100;
+    settings.setInListener(this);
+    settings.setOutListener(this);
+    settings.sampleRate = sampleRate;
+    settings.numOutputChannels = 2;
+    settings.bufferSize = bufferSize;
+
+
+    
     auto devices = soundStream.getDeviceList();
     int audioInterfaceIndex = 0;
     int devIdx=0;
     for(auto i : devices) {
         cout << devIdx << ", " << i.name << endl;
         //Apple Inc.: Built-in-out
-//        if (i.name == "MOTU: MOTU UltraLite"){
-        if (i.name == "Apple Inc.: Built-in Output"){
+        if (i.name == "MOTU: MOTU UltraLite"){
             audioInterfaceIndex=devIdx;
+            settings.numInputChannels = 4;
+            break;
+        }else if (i.name == "Apple Inc.: Built-in-out"){
+            audioInterfaceIndex=devIdx;
+            settings.numInputChannels = 1;
+            break;
         }
         devIdx++;
     }
@@ -32,16 +49,6 @@ void ofApp::setup(){
     cout << devices.at(audioInterfaceIndex).outputChannels << endl;
     
     
-    ofSoundStreamSettings settings;
-    int bufferSize        = 64;
-    int sampleRate        = 44100;
-    settings.setInListener(this);
-    settings.setOutListener(this);
-    settings.sampleRate = sampleRate;
-//    settings.numInputChannels = 4;
-    settings.numInputChannels = 1;
-    settings.numOutputChannels = 2;
-    settings.bufferSize = bufferSize;
     settings.setOutDevice(devices[audioInterfaceIndex]);
     soundStream.setup(settings);
     
@@ -56,22 +63,56 @@ void ofApp::setup(){
     gui->setOpacity(0.9);
 
     gui->addLabel(">> Recording");
+    
+    recordNameField = gui->addTextInput("Name", "rec");
     auto recordToggle = gui->addToggle("Record", isRecording);
     recordToggle->onToggleEvent([&](ofxDatGuiToggleEvent e) {
         if (e.checked) {
             isRecording=1;
-            sfinfo.samplerate = sampleRate;
+            sfinfo.samplerate = 44100;
             sfinfo.channels = 3;
             sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
             stringstream s;
-            s << "/tmp/record_";
+            s << "/tmp/";
+            s << recordNameField->getText();
+            s << "_";
             s << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
             s << ".wav";
             wavfile = sf_open(s.str().c_str(), SFM_WRITE, &sfinfo);
             
+            ofstream paramsFile;
+            s << ".params";
+            paramsFile.open(s.str().c_str());
+            paramsFile << "{";
+            paramsFile << "'maxheadroom':" << maxHeadroom << ",";
+            paramsFile << "'rmsSize':" << rmsSize << ",";
+            paramsFile << "'rmsRelativeHop':" << rmsRelativeHop << ",";
+            paramsFile << "'ETCSymbolCount':" << ETCSymbolCount << ",";
+            paramsFile << "'ETCRange':" << ETCRange << ",";
+            paramsFile << "'ETCRelativeHop':" << ETCRelativeHop << ",";
+            paramsFile << "'channelGains0':" << channelGains[0] << ",";
+            paramsFile << "'channelGains1':" << channelGains[1] << ",";
+            paramsFile << "'channelGains2':" << channelGains[2] << ",";
+            paramsFile << "'channelGains3':" << channelGains[3] << ",";
+            paramsFile << "'dampingCurve':" << dampingCurve << ",";
+            paramsFile << "'damping':" << damping << ",";
+            paramsFile << "'dampingResponseFrequency':" << dampingResponseFrequency << ",";
+            paramsFile << "'dynCCWindowSize':" << dynCCWindowSize << ",";
+            paramsFile << "'dynCCSize':" << dynCCSize << ",";
+            paramsFile << "'dynCCStep':" << dynCCStep << ",";
+            paramsFile << "'dynCCPastSize':" << dynCCPastSize << ",";
+            paramsFile << "'dynCCPastSize':" << dynCCPastSize << ",";
+            paramsFile << "'verbMix':" << verbMix << ",";
+//            paramsFile << "'verbAbsorbtion':" << verbAbsorbtion << ",";
+//            paramsFile << "'verbRoomSize':" << verbRoomSize << ",";
+            paramsFile << "}";
+            paramsFile.close();
+            
         }else{
             isRecording=0;
-            sf_close(wavfile);
+            wwcv.notify_one();
+
+//            sf_close(wavfile);
         };
     });
     gui->addLabel(">> Analysis");
@@ -153,7 +194,7 @@ void ofApp::setup(){
         damping = e.value;
     });
 
-    auto dampingResponseSlider = gui->addSlider("Damping Response", 0.001, 100.0, dampingResponseFrequency);
+    auto dampingResponseSlider = gui->addSlider("Damping Response", 0.001, 300.0, dampingResponseFrequency);
     dampingResponseSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
         dampingResponseFrequency = e.value;
         dampingResponse.set(maxiBiquad::LOWPASS, dampingResponseFrequency, 0.1, 1);
@@ -187,16 +228,39 @@ void ofApp::setup(){
     verbMixSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
         verbMix = e.value;
     });
-    auto verbAbsorptionSlider = gui->addSlider("Verb Absorb", 0.0, 1.0, verbAbsorbtion);
-    verbAbsorptionSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
-        verbAbsorbtion = e.value;
-    });
-    auto verbRoomSizeSlider = gui->addSlider("Verb Room Size", 0.0, 1.0, verbRoomSize);
-    verbRoomSizeSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
-        verbRoomSize = e.value;
-    });
+//    auto verbAbsorptionSlider = gui->addSlider("Verb Absorb", 0.0, 1.0, verbAbsorbtion);
+//    verbAbsorptionSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
+//        verbAbsorbtion = e.value;
+//    });
+//    auto verbRoomSizeSlider = gui->addSlider("Verb Room Size", 0.0, 1.0, verbRoomSize);
+//    verbRoomSizeSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
+//        verbRoomSize = e.value;
+//    });
 
     dampingResponse.set(maxiBiquad::LOWPASS, dampingResponseFrequency, 0.1, 1);
+    
+    
+    audioInRecBuffer.reserve(3 * 44100 * 60 * 15);
+    wavWriter = std::thread([&](){
+        cout<<"Wav Writer thread waiting";
+        while(true) {
+            std::unique_lock<std::mutex> lck(wwmtx);
+            wwcv.wait(lck);
+            sf_count_t n = sf_write_float(wavfile, audioInRecBuffer.data(), audioInRecBuffer.size());
+            audioInRecBuffer.clear();
+//            if(isRecording) {
+//                std::unique_lock<std::mutex> lck(wwmtx);
+//                diskBuffer = audioInRecBuffer;
+//                wwcv.notify_one();
+//                audioInRecBuffer.clear();
+//            }
+            sf_close(wavfile);
+
+            cout << n << endl;
+        }
+    });
+    wavWriter.detach();
+
     ofSoundStreamStart();
 
 }
@@ -275,7 +339,8 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
             mag += (buffer[(i*buffer.getNumChannels()) + j] * channelGains[j]);
         }
         mag = (mag / buffer.getNumChannels());
-        mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
+//        mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
+        mag = mag + (dverb.playStereo(mag)[0] * verbMix);
         audioInBuffer[i] = mag * masterGain;
         sigRingBuf.push(mag);
         if (rmsCounter++ == rmsHop) {
@@ -337,19 +402,26 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
             if (ETCStepCount==ETCHopSize) ETCStepCount=0;
 
         }
-        sf_count_t  n;
-        float rec[2];
-        rec[0] = mag;
-        rec[1] = inputETC;
-        rec[2] = ETCDiff;
+//        sf_count_t n;
+//        float rec[3];
+//        rec[0] = mag;
+//        rec[1] = inputETC;
+//        rec[2] = ETCDiff;
+        
         if (isRecording) {
-            n = sf_write_float(wavfile, &rec[0], 3);
+//            n = sf_write_float(wavfile, &rec[0], 3);
+            audioInRecBuffer.push_back(mag);
+            audioInRecBuffer.push_back(inputETC);
+            audioInRecBuffer.push_back(ETCDiff);
         }
 
     }
-
-    
-    
+//    if(isRecording) {
+//        std::unique_lock<std::mutex> lck(wwmtx);
+//        diskBuffer = audioInRecBuffer;
+//        wwcv.notify_one();
+//        audioInRecBuffer.clear();
+//    }
 }
 
 void ofApp::audioOut(ofSoundBuffer & buffer) {
@@ -422,4 +494,10 @@ void ofApp::gotMessage(ofMessage msg){
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo){ 
 
+}
+
+
+void ofApp::exit() {
+    soundStream.stop();
+    soundStream.close();
 }

@@ -32,6 +32,7 @@ class ofApp : public ofBaseApp{
     
     void audioIn(ofSoundBuffer & buffer);
     void audioOut(ofSoundBuffer & buffer);
+    void exit();
 
     ofSoundStream soundStream;
     std::vector<float> audioInBuffer;
@@ -77,16 +78,23 @@ class ofApp : public ofBaseApp{
     float eq1Freq=1000, eq1Q=1, eq1Gain=0;
 
     maxiFreeVerb verb;
+    maxiDattaroReverb dverb;
     float verbMix=0.2, verbAbsorbtion=0.4, verbRoomSize=0.4;
 
     
     //gui
     ofxDatGui* gui;
     ofxDatGuiSlider* gainSliders[4];
+    ofxDatGuiTextInput* recordNameField;
     
     //recording
     SNDFILE*  wavfile;
     SF_INFO sfinfo;
     bool isRecording = 0;
+    std::vector<float> audioInRecBuffer;
+    std::vector<float> diskBuffer;
+    std::thread wavWriter;
+    std::mutex wwmtx;
+    std::condition_variable wwcv;
     
 };

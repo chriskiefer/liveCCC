@@ -54,6 +54,8 @@ gate oscillator - gateOsc.play([1,0,0,0,0,1,0,0], 400ms)
 #include <cmath>
 #include <vector>
 #include <cfloat>
+#include <limits>
+
 #ifdef _WIN32 //|| _WIN64
 #include <algorithm>
 #endif

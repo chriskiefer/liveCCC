@@ -33,6 +33,7 @@ class ofApp : public ofBaseApp{
     
     void audioIn(ofSoundBuffer & buffer);
     void audioOut(ofSoundBuffer & buffer);
+    void exit();
 
     ofSoundStream soundStream;
     int sampleRate, bufferSize;
@@ -88,11 +89,12 @@ class ofApp : public ofBaseApp{
     armaRingBuf<float> string1RingBuf{500};
     armaRingBuf<float> string2RingBuf{500};
     armaRingBuf<float> allStringsRingBuf{500};
+    maxiDattaroReverb dverb;
 
     
     //gui
-    ofxDatGui* gui;
-    ofxDatGuiSlider* gainSliders[4];
+//    ofxDatGui* gui;
+//    ofxDatGuiSlider* gainSliders[4];
     ofxDatGuiToggle* recordToggle;
 
     //ofxGui
@@ -128,5 +130,11 @@ class ofApp : public ofBaseApp{
     SNDFILE*  wavfile;
     SF_INFO sfinfo;
 //    bool isRecording = 0;
+    
+    std::vector<float> audioInRecBuffer;
+    std::vector<float> diskBuffer;
+    std::thread wavWriter;
+    std::mutex wwmtx;
+    std::condition_variable wwcv;
     
 };

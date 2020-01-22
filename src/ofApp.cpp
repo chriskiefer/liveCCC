@@ -23,21 +23,21 @@ void ofApp::pHeadroomChanged(double &v) {
 }
 
 void ofApp::pRecordingToggle(bool &v) {
-    if (v) {
-//        isRecording=1;
-        sfinfo.samplerate = sampleRate;
-        sfinfo.channels = 3;
-        sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
-        stringstream s;
-        s << "/tmp/record_";
-        s << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
-        s << ".wav";
-        wavfile = sf_open(s.str().c_str(), SFM_WRITE, &sfinfo);
+//    if (v) {
+////        isRecording=1;
+//        sfinfo.samplerate = sampleRate;
+//        sfinfo.channels = 3;
+//        sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
+//        stringstream s;
+//        s << "/tmp/record_";
+//        s << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+//        s << ".wav";
+//        wavfile = sf_open(s.str().c_str(), SFM_WRITE, &sfinfo);
 
-    }else{
-//        isRecording=0;
-        sf_close(wavfile);
-    };
+//    }else{
+////        isRecording=0;
+//        sf_close(wavfile);
+//    };
 }
 
 
@@ -73,6 +73,9 @@ void ofApp::setup(){
     ofSetWindowShape(ofGetScreenWidth() * 0.7,     ofGetScreenHeight() * 0.5);
     ofSetWindowPosition(10, 10);
     
+    
+
+
     auto devices = soundStream.getDeviceList();
     int audioInterfaceIndex = 0;
     int devIdx=0;
@@ -83,9 +86,10 @@ void ofApp::setup(){
 //        if (i.name == "Apple Inc.: Built-in Output"){
 //        if (i.name == "system"){
 //        if (i.name == "default"){
-            if (i.name == "hw:Komplete Audio 6,0"){
+          if (i.name == "hw:Komplete Audio 6,0"){
 
             audioInterfaceIndex=devIdx;
+            break;
         }
         devIdx++;
     }
@@ -178,7 +182,37 @@ void ofApp::setup(){
 //    headroomSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
 //        maxHeadroom = e.value;
 //    });
-    
+
+//            ofstream paramsFile;
+//            s << ".params";
+//            paramsFile.open(s.str().c_str());
+//            paramsFile << "{";
+//            paramsFile << "'maxheadroom':" << maxHeadroom << ",";
+//            paramsFile << "'rmsSize':" << rmsSize << ",";
+//            paramsFile << "'rmsRelativeHop':" << rmsRelativeHop << ",";
+//            paramsFile << "'ETCSymbolCount':" << ETCSymbolCount << ",";
+//            paramsFile << "'ETCRange':" << ETCRange << ",";
+//            paramsFile << "'ETCRelativeHop':" << ETCRelativeHop << ",";
+//            paramsFile << "'channelGains0':" << channelGains[0] << ",";
+//            paramsFile << "'channelGains1':" << channelGains[1] << ",";
+//            paramsFile << "'channelGains2':" << channelGains[2] << ",";
+//            paramsFile << "'channelGains3':" << channelGains[3] << ",";
+//            paramsFile << "'dampingCurve':" << dampingCurve << ",";
+//            paramsFile << "'damping':" << damping << ",";
+//            paramsFile << "'dampingResponseFrequency':" << dampingResponseFrequency << ",";
+//            paramsFile << "'dynCCWindowSize':" << dynCCWindowSize << ",";
+//            paramsFile << "'dynCCSize':" << dynCCSize << ",";
+//            paramsFile << "'dynCCStep':" << dynCCStep << ",";
+//            paramsFile << "'dynCCPastSize':" << dynCCPastSize << ",";
+//            paramsFile << "'dynCCPastSize':" << dynCCPastSize << ",";
+//            paramsFile << "'verbMix':" << verbMix << ",";
+////            paramsFile << "'verbAbsorbtion':" << verbAbsorbtion << ",";
+////            paramsFile << "'verbRoomSize':" << verbRoomSize << ",";
+//            paramsFile << "}";
+//            paramsFile.close();
+            
+//            wwcv.notify_one();
+
 ////    auto setupRMS = [&]() {
 ////        rmsHop = (int)(rmsSize * rmsRelativeHop);
 ////        rmsCounter=0;
@@ -247,11 +281,6 @@ void ofApp::setup(){
 //        damping = e.value;
 //    });
 
-//    auto dampingResponseSlider = gui->addSlider("Damping Response", 0.001, 100.0, dampingResponseFrequency);
-//    dampingResponseSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
-//        dampingResponseFrequency = e.value;
-//        dampingResponse.set(maxiBiquad::LOWPASS, dampingResponseFrequency, 0.1, 1);
-//    });
 
     
 //    auto dynCCWindowSlider = gui->addSlider("DynCC Window", 10, 200, dynCCWindowSize);
@@ -272,15 +301,6 @@ void ofApp::setup(){
 //    });
     
 
-//    auto eq1FreqSlider = gui->addSlider("EQ 1 Freq", 0.0, 1.0, dynCCPastSize);
-//    dynCCPastSizeSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
-//        dynCCPastSize = e.value;
-//    });
-
-//    auto verbMixSlider = gui->addSlider("Verb Mix", 0.0, 1.0, verbMix);
-//    verbMixSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
-//        verbMix = e.value;
-//    });
 //    auto verbAbsorptionSlider = gui->addSlider("Verb Absorb", 0.0, 1.0, verbAbsorbtion);
 //    verbAbsorptionSlider->onSliderEvent([&](ofxDatGuiSliderEvent e) {
 //        verbAbsorbtion = e.value;
@@ -301,7 +321,7 @@ void ofApp::setup(){
     settings.numOutputChannels = 2;
     settings.bufferSize = bufferSize;
     settings.setInDevice(devices[audioInterfaceIndex]);
-        settings.setOutDevice(devices[audioInterfaceIndex]);
+   settings.setOutDevice(devices[audioInterfaceIndex]);
 //        settings.setDeviceID(devices[audioInterfaceIndex]);
 
     audioInBuffer.resize(bufferSize);
@@ -310,7 +330,22 @@ void ofApp::setup(){
 
     dampingResponse.set(maxiBiquad::LOWPASS, pDampingResponseFrequency.get(), 0.1, 1);
 
-//    ofSoundStreamStart();
+//    ofSoundStreamStart();    
+    
+    audioInRecBuffer.reserve(3 * 44100 * 60 * 15);
+//    wavWriter = std::thread([&](){
+//        cout<<"Wav Writer thread waiting";
+//        while(true) {
+//            std::unique_lock<std::mutex> lck(wwmtx);
+//            wwcv.wait(lck);
+//            sf_count_t n = sf_write_float(wavfile, audioInRecBuffer.data(), audioInRecBuffer.size());
+//            audioInRecBuffer.clear();
+//            sf_close(wavfile);
+//            cout << n << endl;
+//        }
+//    });
+//    wavWriter.detach();
+
 
 }
 
@@ -390,7 +425,8 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
             mag += (buffer[(i*buffer.getNumChannels()) + j] * pChannelGains[j].get());
         }
         mag = (mag / buffer.getNumChannels());
-        mag = mag + (verb.play(mag, pVerbRoomSize, pVerbAbsorbtion) * pVerbMix);
+//        mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
+//        mag = mag + (dverb.playStereo(mag)[0] * pVerbMix);
         audioInBuffer[i] = mag * masterGain;
         sigRingBuf.push(mag);
         if (rmsCounter++ == rmsHop) {
@@ -459,19 +495,13 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
             if (ETCStepCount==ETCHopSize) ETCStepCount=0;
 
         }
-        if (pRecording.get()) {
-            sf_count_t  n;
-            float rec[2];
-            rec[0] = mag;
-            rec[1] = inputETC;
-            rec[2] = ETCDiff;
-            n = sf_write_float(wavfile, &rec[0], 3);
-        }
+//        if (pRecording.get()) {
+//            audioInRecBuffer.push_back(mag);
+//            audioInRecBuffer.push_back(inputETC);
+//            audioInRecBuffer.push_back(ETCDiff);
+//        }
 
     }
-
-    
-    
 }
 
 void ofApp::audioOut(ofSoundBuffer & buffer) {
@@ -539,4 +569,10 @@ void ofApp::gotMessage(ofMessage msg){
 //--------------------------------------------------------------
 void ofApp::dragEvent(ofDragInfo dragInfo){ 
 
+}
+
+
+void ofApp::exit() {
+    soundStream.stop();
+    soundStream.close();
 }

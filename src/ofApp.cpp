@@ -23,6 +23,26 @@ void ofApp::pHeadroomChanged(double &v) {
 }
 
 void ofApp::pRecordingToggle(bool &v) {
+    if (v) {
+        sfinfo.samplerate = sampleRate;
+        sfinfo.channels = 3;
+        sfinfo.format = SF_FORMAT_WAV | SF_FORMAT_FLOAT;
+        stringstream s;
+        s << "/tmp/record_";
+        s << std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
+        s << ".wav";
+        wavfile = sf_open(s.str().c_str(), SFM_WRITE, &sfinfo);
+    }else{
+        wavWriter = std::thread([&](){
+            cout<<"Wav Writer thread\n";
+            sf_count_t n = sf_write_float(wavfile, audioInRecBuffer.data(), audioInRecBuffer.size());
+            audioInRecBuffer.clear();
+            sf_close(wavfile);
+            cout << n << endl;
+        });
+        wavWriter.detach();
+    };
+
 //    if (v) {
 ////        isRecording=1;
 //        sfinfo.samplerate = sampleRate;
@@ -73,6 +93,10 @@ void ofApp::setup(){
     ofSetWindowShape(ofGetScreenWidth() * 0.7,     ofGetScreenHeight() * 0.5);
     ofSetWindowPosition(10, 10);
     
+    for(size_t i = 0; i < 4; i++) {
+        stringRingBuf[i].setSize(512);
+        stringRMSRingBuf[i].setSize(512);
+    }
     
 
 
@@ -138,7 +162,7 @@ void ofApp::setup(){
 
     ofgui.add(pDampingCurve.set("Damping Curve", 1.0, 0.5, 3.0));
     ofgui.add(pDamping.set("Damping", 0, 0, 10.0));
-    ofgui.add(pDampingResponseFrequency.set("Damping Response", 50, 0.001, 100.0));
+    ofgui.add(pDampingResponseFrequency.set("Damping Response", 50, 0.001, 20.0));
 
     ofgui.add(pVerbMix.set("Reverb Mix", 0,0,1));
     ofgui.add(pVerbAbsorbtion.set("Reverb Absorbtion", 0,0,1));
@@ -310,7 +334,7 @@ void ofApp::setup(){
 //        verbRoomSize = e.value;
 //    });
     ofSoundStreamSettings settings;
-    settings.setApi(ofSoundDevice::ALSA);
+//    settings.setApi(ofSoundDevice::ALSA);
     bufferSize        = 64;
     sampleRate        = 44100;
     settings.setInListener(this);
@@ -319,6 +343,7 @@ void ofApp::setup(){
     settings.numInputChannels = 4;
 //    settings.numInputChannels = 1;
     settings.numOutputChannels = 2;
+    settings.numBuffers = 4;
     settings.bufferSize = bufferSize;
     settings.setInDevice(devices[audioInterfaceIndex]);
    settings.setOutDevice(devices[audioInterfaceIndex]);
@@ -333,17 +358,6 @@ void ofApp::setup(){
 //    ofSoundStreamStart();    
     
     audioInRecBuffer.reserve(3 * 44100 * 60 * 15);
-//    wavWriter = std::thread([&](){
-//        cout<<"Wav Writer thread waiting";
-//        while(true) {
-//            std::unique_lock<std::mutex> lck(wwmtx);
-//            wwcv.wait(lck);
-//            sf_count_t n = sf_write_float(wavfile, audioInRecBuffer.data(), audioInRecBuffer.size());
-//            audioInRecBuffer.clear();
-//            sf_close(wavfile);
-//            cout << n << endl;
-//        }
-//    });
 //    wavWriter.detach();
 
 
@@ -359,7 +373,7 @@ void ofApp::draw(){
     ofBackground(255,255,255);
     ofSetColor(100,100,100);
     ofFill();
-    ofDrawRectangle(10,ofGetHeight()*0.9,50, -ofGetHeight()*0.8*inputETC);
+    ofDrawRectangle(10,ofGetHeight()*0.9,50, -ofGetHeight()*0.8*etcAllStrings);
     ofSetColor(0,0,0);
     double meanRMSHeight =  (ofGetHeight()*0.9)-(ofGetHeight()*0.8*meanRMS);
     ofSetLineWidth(3);
@@ -409,6 +423,15 @@ void ofApp::draw(){
         ofDrawLine(xoff+(i*step)-1, ybase - (ofGetHeight()*0.9*(mgainBuf[i-1])), xoff+(i*step), ybase - (ofGetHeight()*0.9*(mgainBuf[i])));
     }
 
+    ofSetColor(255,100,255, 150);
+    ofSetLineWidth(1);
+    auto cccIVBuf = cccIVToMainRingBuf.getBuffer(cccIVToMainRingBuf.size());
+    ybase = ofGetHeight()*0.45;
+    ofNoFill();
+    for(int i=1; i < cccIVBuf.size(); i++) {
+        ofDrawLine(xoff+(i*step)-1, ybase - (ofGetHeight()*0.9*(cccIVBuf[i-1])), xoff+(i*step), ybase - (ofGetHeight()*0.9*(cccIVBuf[i])));
+    }
+
     ofgui.draw();
 }
 
@@ -417,55 +440,123 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
     
     //mixdown to mono
 
-    masterGain = dampingResponse.play(1.0 - min(1.0,pow(ETCDiff * pDamping, pDampingCurve.get())));
-    masterGainRingBuf.push(masterGain);
     for(size_t i=0; i < buffer.getNumFrames(); i++) {
+        masterGain = dampingResponse.play(1.0 - min(1.0,pow(ETCDiff * pDamping, pDampingCurve.get())));
         float mag=0;
         for (size_t j=0; j < buffer.getNumChannels(); j++) {
-            mag += (buffer[(i*buffer.getNumChannels()) + j] * pChannelGains[j].get());
+            double chInput = (buffer[(i*buffer.getNumChannels()) + j] * pChannelGains[j].get());
+            stringRingBuf[j].push(chInput);
+            mag += chInput;
         }
         mag = (mag / buffer.getNumChannels());
 //        mag = mag + (verb.play(mag, verbRoomSize, verbAbsorbtion) * verbMix);
-//        mag = mag + (dverb.playStereo(mag)[0] * pVerbMix);
+
+        mag = mag + (dverb.playStereo(mag)[0] * pVerbMix);
         audioInBuffer[i] = mag * masterGain;
-        sigRingBuf.push(mag);
+        mainMixSignalRingBuf.push(mag);
         if (rmsCounter++ == rmsHop) {
-            auto rmsWindow = sigRingBuf.getBuffer(pRmsSize.get());
-            double rms=0;
-            for(int j=0; j < pRmsSize.get(); j++) {
-                rms += rmsWindow[j] * rmsWindow[j];
+            auto calcRMS = [&](Col<float> &win) {
+                double rms=0;
+                for(int j=0; j < pRmsSize.get(); j++) {
+                    rms += win[j] * win[j];
+                }
+                rms = sqrt(rms / pRmsSize.get());
+                return rms;
+            };
+            //calc individual string RMS
+            for (size_t j=0; j < buffer.getNumChannels(); j++) {
+                auto stringRMSWindow = stringRingBuf[j].getBuffer(pRmsSize.get());
+                double stringRMS = calcRMS(stringRMSWindow);
             }
-            rms = sqrt(rms / pRmsSize.get());
-            inputRMS = rms;
+            auto rmsWindow = mainMixSignalRingBuf.getBuffer(pRmsSize.get());
+//            double rms=0;
+//            for(int j=0; j < pRmsSize.get(); j++) {
+//                rms += rmsWindow[j] * rmsWindow[j];
+//            }
+//            rms = sqrt(rms / pRmsSize.get());
+            inputRMS = calcRMS(rmsWindow);
             rmsRingBuf.push(inputRMS);
             rmsCounter=0;
             
             if (ETCStepCount==0) {
-                auto rmsbuf = rmsRingBuf.getBuffer(pETCRange.get());
-                ivec rmsSymBuf(rmsbuf.size());
-                double rmsBufMax = rmsbuf.max();
-//                double rmsMax = std::max(pHeadroom, rmsBufMax);
-                double rmsMax = pRmsMode.get() ? rmsbuf.max() : std::max(pHeadroom.get(), rmsBufMax);
-                for(size_t i=0; i < rmsbuf.size(); i++) {
-                    rmsSymBuf[i] = static_cast<sword>(rmsbuf[i]/rmsMax * pETCSymbolCount.get());
-                }
+
+                auto symbolize = [&](Col<float> &win) {
+                    ivec rmsSymBuf(win.size());
+                    double rmsBufMax = win.max();
+                    double rmsMax = pRmsMode.get() ? rmsBufMax : std::max(pHeadroom.get(), rmsBufMax);
+                    for(size_t i=0; i < win.size(); i++) {
+                        rmsSymBuf[i] = static_cast<sword>(win[i]/rmsMax * pETCSymbolCount.get());
+                    }
+                    return rmsSymBuf;
+                };
+
+//                auto calcETCFromRMSBuf = [&](Col<float> &win) {
+//                    ivec rmsSymBuf(win.size());
+//                    double rmsBufMax = win.max();
+//                    double rmsMax = pRmsMode.get() ? rmsBufMax : std::max(pHeadroom.get(), rmsBufMax);
+//                    for(size_t i=0; i < win.size(); i++) {
+//                        rmsSymBuf[i] = static_cast<sword>(win[i]/rmsMax * pETCSymbolCount.get());
+//                    }
+//                    return ETC::calc(rmsSymBuf);
+//                };
+
+                auto allStringsRMSBuf = rmsRingBuf.getBuffer(pETCRange.get());
+                auto allStringsSymBuf = symbolize(allStringsRMSBuf);
+//                double rmsSum=0;
+//                for(int i=0; i < rmsbuf.size(); i++) {
+//                    rmsSum += rmsbuf[i];
+//                }
+//                meanRMS =  rmsSum / rmsbuf.size();
+                etcAllStrings = ETC::calc(allStringsSymBuf);
+
+
+//                ivec rmsSymBuf(rmsbuf.size());
+                double rmsBufMax = allStringsRMSBuf.max();
+////                double rmsMax = std::max(pHeadroom, rmsBufMax);
+                double rmsMax = pRmsMode.get() ? allStringsRMSBuf.max() : std::max(pHeadroom.get(), rmsBufMax);
+//                for(size_t i=0; i < rmsbuf.size(); i++) {
+//                    rmsSymBuf[i] = static_cast<sword>(rmsbuf[i]/rmsMax * pETCSymbolCount.get());
+//                }
                 
                 
                 double rmsSum=0;
-                for(int i=0; i < rmsbuf.size(); i++) {
-                    rmsSum += rmsbuf[i];
+                for(int i=0; i < allStringsRMSBuf.size(); i++) {
+                    rmsSum += allStringsRMSBuf[i];
                 }
-                meanRMS =  rmsSum / rmsbuf.size();
+                meanRMS =  rmsSum / allStringsRMSBuf.size();
                 
-                inputETC = ETC::calc(rmsSymBuf);
+//                inputETC = ETC::calc(rmsSymBuf);
+
 //                //        ETCDiff = (meanRMS/recentMaxRMS) - inputETC;
 ////                ETCDiff = (meanRMS/rmsMax) - inputETC;
-                ETCDiff = (1.0-inputETC) * (meanRMS / rmsMax);
+///
+//                cout <<  (meanRMS / rmsMax) << endl;
+
+//                ETCDiff = (1.0-inputETC) * (meanRMS / rmsMax);
+                ETCDiff = (1.0-etcAllStrings);
                 etcDiffRingBuf.push(ETCDiff);
+                cccIVToMainRingBuf.push(rmsMax - 0.5 );
+
+
+
+
                 
                 //        auto rmsbufLong = rmsRingBuf.getBuffer(400);
                 //        recentMaxRMS=rmsbufLong.max();
                 
+                //CCC
+                if (pCalcCCC.get()) {
+                    auto stringIVRMSBuf = stringRMSRingBuf[0].getBuffer(pETCRange.get());
+                    auto stringIVSymBuf = symbolize(stringIVRMSBuf);
+                    int ccc_dx = pETCRange.get() * 0.25;
+                    int ccc_xpast = ccc_dx;
+                    double cccIVToMain;
+                    int cccIVToMainType;
+                    tie(cccIVToMain, cccIVToMainType) = CCC::CCCausality(allStringsSymBuf, stringIVSymBuf, ccc_dx, ccc_xpast, 5);
+                    cccIVToMainRingBuf.push(cccIVToMain);
+                }
+
+
 
 //                //Dyn CC
 //                rmsbuf = rmsRingBuf.getBuffer(dynCCWindowSize);
@@ -490,18 +581,23 @@ void ofApp::audioIn(ofSoundBuffer & buffer) {
 //                CCC
 
 
+
             }
             ETCStepCount++;
             if (ETCStepCount==ETCHopSize) ETCStepCount=0;
 
         }
-//        if (pRecording.get()) {
-//            audioInRecBuffer.push_back(mag);
-//            audioInRecBuffer.push_back(inputETC);
-//            audioInRecBuffer.push_back(ETCDiff);
-//        }
+
+        if (pRecording.get()) {
+            audioInRecBuffer.push_back(mag);
+            audioInRecBuffer.push_back(etcAllStrings);
+            audioInRecBuffer.push_back(ETCDiff);
+        }
 
     }
+    cout << pRecording.get() << endl;
+    masterGainRingBuf.push(masterGain);
+
 }
 
 void ofApp::audioOut(ofSoundBuffer & buffer) {

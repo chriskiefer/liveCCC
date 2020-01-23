@@ -39,7 +39,7 @@ class ofApp : public ofBaseApp{
     int sampleRate, bufferSize;
     std::vector<float> audioInBuffer;
     float inputRMS=0;
-    double inputETC=0;
+    double etcAllStrings=0;
     double dynCC=0;
     int ETCStepCount=0;
     double meanRMS=0;
@@ -60,14 +60,17 @@ class ofApp : public ofBaseApp{
     double maxHeadroom = 0.1;
 //    bool rmsMode = 1;
     //sound
-//    float channelGains[4] = {1,1,3,3};
     float masterGain = 1.0;
     armaRingBuf<float> rmsRingBuf{500};
     armaRingBuf<float> dynccRingBuf{500};
     armaRingBuf<float> cccRingBuf{500};
     armaRingBuf<float> etcDiffRingBuf{500};
-    armaRingBuf<float> sigRingBuf{512};
+    armaRingBuf<float> mainMixSignalRingBuf{512};
+    armaRingBuf<float> stringRingBuf[4];
+    armaRingBuf<float> stringRMSRingBuf[4];
     armaRingBuf<float> masterGainRingBuf{500};
+    armaRingBuf<float> cccIVToMainRingBuf{500};
+
 
     double cccStringIV=0.0;
 //    int rmsSize=64;
@@ -124,6 +127,8 @@ class ofApp : public ofBaseApp{
     ofParameter<double> pVerbMix, pVerbAbsorbtion, pVerbRoomSize;
 
     ofxLabel CCCLabel;
+
+    ofParameter<bool> pCalcCCC = false;
 
 
     //recording

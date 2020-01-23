@@ -23,7 +23,12 @@ public:
         buf.resize(N);
         buf.fill(0);
     }
-    
+    void setSize(size_t N) {
+        buf.resize(N);
+        buf.fill(0);
+        idx=0;
+    }
+
     void push(T x) {
         std::lock_guard<std::mutex> lock(write_mutex);
         buf[idx] = x;
